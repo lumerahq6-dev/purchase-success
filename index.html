@@ -297,15 +297,19 @@
           btn.textContent = 'Activated';
           return;
         }
-        if (resp.status === 404 && !email) {
-          showError('Couldn’t match your payment automatically. Add your Patreon email below and try again.');
+        var serverMsg = (data && data.error) || 'Activation failed. Try again or contact support.';
+        showError(serverMsg);
+        // If the server says it can't find an unclaimed patron record AND the
+        // user hasn't supplied their Patreon email yet, surface the email
+        // field so they can disambiguate. Don't fire when the username itself
+        // wasn't found.
+        var serverMsgLower = (serverMsg || '').toLowerCase();
+        if (resp.status === 404 && !email && (serverMsgLower.indexOf('unclaimed') !== -1 || serverMsgLower.indexOf('no active membership') !== -1)) {
           if (emailRow.hidden) {
             emailRow.hidden = false;
             optBtn.textContent = 'Hide Patreon email';
             emailEl.focus();
           }
-        } else {
-          showError((data && data.error) || 'Activation failed. Try again or contact support.');
         }
       } catch (err) {
         showError('Network error. Check your connection and try again.');
