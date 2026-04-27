@@ -113,21 +113,7 @@
     border-color: rgba(255,215,0,.42);
     background: rgba(255,255,255,.06);
   }
-  .row { margin-bottom: 12px; }
-  .row.opt { margin-bottom: 16px; }
-  .opt-toggle {
-    display: inline-block;
-    background: none;
-    border: none;
-    color: #ffd270;
-    font-size: 12.5px;
-    cursor: pointer;
-    padding: 4px 0;
-    margin-bottom: 8px;
-    text-decoration: underline;
-    text-decoration-color: rgba(255,210,112,.4);
-  }
-  .opt-toggle:hover { text-decoration-color: rgba(255,210,112,.85); }
+  .row { margin-bottom: 14px; }
   .activate-btn {
     width: 100%;
     padding: 14px 18px;
@@ -208,18 +194,17 @@
       </svg>
     </div>
     <h1>Purchase Success</h1>
-    <p class="lede">Your payment went through. Enter your account username below to activate access.</p>
+    <p class="lede">Your payment went through. Enter your account username and the email you used on Patreon to activate access.</p>
 
     <form class="form-wrap" id="activate-form" autocomplete="off">
       <div class="row">
         <label class="field-label" for="username">Account Username</label>
         <input type="text" id="username" name="username" required minlength="3" maxlength="64" autocomplete="off" placeholder="your_username" />
       </div>
-      <div class="row opt" id="email-row" hidden>
-        <label class="field-label" for="email">Patreon Email <span style="color:#9999a3;font-weight:400;font-size:12px;">(optional)</span></label>
-        <input type="email" id="email" name="email" autocomplete="off" placeholder="example@gmail.com" />
+      <div class="row">
+        <label class="field-label" for="email">Patreon Email</label>
+        <input type="email" id="email" name="email" required autocomplete="off" placeholder="example@gmail.com" />
       </div>
-      <button type="button" class="opt-toggle" id="opt-toggle">Trouble activating? Add Patreon email</button>
       <button type="submit" class="activate-btn" id="activate-btn">Activate Access</button>
       <div class="msg error" id="msg-error" role="alert"></div>
       <div class="msg success" id="msg-success" role="status"></div>
@@ -240,17 +225,9 @@
     var form    = document.getElementById('activate-form');
     var userEl  = document.getElementById('username');
     var emailEl = document.getElementById('email');
-    var emailRow = document.getElementById('email-row');
-    var optBtn = document.getElementById('opt-toggle');
     var btn     = document.getElementById('activate-btn');
     var errEl   = document.getElementById('msg-error');
     var okEl    = document.getElementById('msg-success');
-
-    optBtn.addEventListener('click', function() {
-      emailRow.hidden = !emailRow.hidden;
-      if (!emailRow.hidden) emailEl.focus();
-      optBtn.textContent = emailRow.hidden ? 'Trouble activating? Add Patreon email' : 'Hide Patreon email';
-    });
 
     function showError(msg) {
       okEl.style.display = 'none';
@@ -273,8 +250,8 @@
         showError('Enter your account username.');
         return;
       }
-      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        showError('Enter a valid email or leave it blank.');
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showError('Enter the email you used on Patreon.');
         return;
       }
 
@@ -283,13 +260,11 @@
       btn.textContent = 'Activating…';
 
       try {
-        var body = { username: username };
-        if (email) body.email = email;
         var resp = await fetch(API_BASE + '/api/patreon/redeem-by-username', {
           method: 'POST',
           mode: 'cors',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
+          body: JSON.stringify({ username: username, email: email }),
         });
         var data = await resp.json().catch(function() { return {}; });
         if (resp.ok && data && data.success) {
@@ -297,20 +272,7 @@
           btn.textContent = 'Activated';
           return;
         }
-        var serverMsg = (data && data.error) || 'Activation failed. Try again or contact support.';
-        showError(serverMsg);
-        // If the server says it can't find an unclaimed patron record AND the
-        // user hasn't supplied their Patreon email yet, surface the email
-        // field so they can disambiguate. Don't fire when the username itself
-        // wasn't found.
-        var serverMsgLower = (serverMsg || '').toLowerCase();
-        if (resp.status === 404 && !email && (serverMsgLower.indexOf('unclaimed') !== -1 || serverMsgLower.indexOf('no active membership') !== -1)) {
-          if (emailRow.hidden) {
-            emailRow.hidden = false;
-            optBtn.textContent = 'Hide Patreon email';
-            emailEl.focus();
-          }
-        }
+        showError((data && data.error) || 'Activation failed. Try again or contact support.');
       } catch (err) {
         showError('Network error. Check your connection and try again.');
       } finally {
