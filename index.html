@@ -85,75 +85,6 @@
     font-size: 16px;
     line-height: 1.55;
   }
-  .form-wrap {
-    margin: 18px 0 6px;
-    text-align: left;
-  }
-  label.field-label {
-    display: block;
-    font-size: 13px;
-    color: #c8c8d2;
-    margin-bottom: 6px;
-    font-weight: 600;
-    letter-spacing: .3px;
-  }
-  input[type=text], input[type=email] {
-    width: 100%;
-    padding: 13px 14px;
-    border-radius: 10px;
-    border: 1px solid rgba(255,215,0,0.14);
-    background: rgba(255,255,255,.03);
-    color: #fff;
-    font-size: 15px;
-    font-family: inherit;
-    transition: border-color .15s, background .15s;
-  }
-  input[type=text]:focus, input[type=email]:focus {
-    outline: none;
-    border-color: rgba(255,215,0,.42);
-    background: rgba(255,255,255,.06);
-  }
-  .row { margin-bottom: 14px; }
-  .activate-btn {
-    width: 100%;
-    padding: 14px 18px;
-    border-radius: 12px;
-    border: none;
-    background: linear-gradient(135deg, #ffd967, #ffb300);
-    color: #1a1a0a;
-    font-size: 16px;
-    font-weight: 800;
-    letter-spacing: .4px;
-    cursor: pointer;
-    transition: transform .12s, box-shadow .12s, opacity .12s;
-    box-shadow: 0 6px 20px rgba(255,196,0,.35);
-  }
-  .activate-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 28px rgba(255,196,0,.5);
-  }
-  .activate-btn:disabled {
-    opacity: .55;
-    cursor: not-allowed;
-  }
-  .msg {
-    margin-top: 14px;
-    padding: 12px 14px;
-    border-radius: 10px;
-    font-size: 14px;
-    line-height: 1.45;
-    display: none;
-  }
-  .msg.error {
-    background: rgba(255,80,80,.08);
-    border: 1px solid rgba(255,80,80,.3);
-    color: #ffb0b0;
-  }
-  .msg.success {
-    background: rgba(80,255,160,.08);
-    border: 1px solid rgba(80,255,160,.3);
-    color: #b6f5cf;
-  }
   .panel {
     margin: 22px 0 8px;
     padding: 16px 18px;
@@ -194,21 +125,14 @@
       </svg>
     </div>
     <h1>Purchase Success</h1>
-    <p class="lede">Your payment went through. Enter your account username and the email you used on Patreon to activate access.</p>
+    <p class="lede">Your payment went through and your access has been activated.</p>
 
-    <form class="form-wrap" id="activate-form" autocomplete="off">
-      <div class="row">
-        <label class="field-label" for="username">Account Username</label>
-        <input type="text" id="username" name="username" required minlength="3" maxlength="64" autocomplete="off" placeholder="your_username" />
-      </div>
-      <div class="row">
-        <label class="field-label" for="email">Patreon Email</label>
-        <input type="email" id="email" name="email" required autocomplete="off" placeholder="example@gmail.com" />
-      </div>
-      <button type="submit" class="activate-btn" id="activate-btn">Activate Access</button>
-      <div class="msg error" id="msg-error" role="alert"></div>
-      <div class="msg success" id="msg-success" role="status"></div>
-    </form>
+    <div class="panel">
+      <strong>What happens next</strong><br/>
+      Your membership is being provisioned in the background. This usually takes
+      under a minute. There is nothing else for you to do &mdash; you can close
+      this tab whenever you&rsquo;re ready.
+    </div>
 
     <div class="panel">
       <strong>Need help?</strong><br/>
@@ -218,69 +142,5 @@
 
     <p class="small">Thanks for the support.</p>
   </main>
-
-  <script>
-  (function() {
-    var API_BASE = 'https://pornyard.xyz';
-    var form    = document.getElementById('activate-form');
-    var userEl  = document.getElementById('username');
-    var emailEl = document.getElementById('email');
-    var btn     = document.getElementById('activate-btn');
-    var errEl   = document.getElementById('msg-error');
-    var okEl    = document.getElementById('msg-success');
-
-    function showError(msg) {
-      okEl.style.display = 'none';
-      errEl.textContent = msg;
-      errEl.style.display = 'block';
-    }
-    function showSuccess(msg) {
-      errEl.style.display = 'none';
-      okEl.textContent = msg;
-      okEl.style.display = 'block';
-    }
-
-    form.addEventListener('submit', async function(e) {
-      e.preventDefault();
-      errEl.style.display = 'none';
-      okEl.style.display = 'none';
-      var username = (userEl.value || '').trim();
-      var email = (emailEl.value || '').trim().toLowerCase();
-      if (!username || username.length < 3) {
-        showError('Enter your account username.');
-        return;
-      }
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        showError('Enter the email you used on Patreon.');
-        return;
-      }
-
-      btn.disabled = true;
-      var origLabel = btn.textContent;
-      btn.textContent = 'Activating…';
-
-      try {
-        var resp = await fetch(API_BASE + '/api/patreon/redeem-by-username', {
-          method: 'POST',
-          mode: 'cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: username, email: email }),
-        });
-        var data = await resp.json().catch(function() { return {}; });
-        if (resp.ok && data && data.success) {
-          showSuccess(data.message || 'Access activated. You can close this tab and refresh the site.');
-          btn.textContent = 'Activated';
-          return;
-        }
-        showError((data && data.error) || 'Activation failed. Try again or contact support.');
-      } catch (err) {
-        showError('Network error. Check your connection and try again.');
-      } finally {
-        btn.disabled = false;
-        if (btn.textContent === 'Activating…') btn.textContent = origLabel;
-      }
-    });
-  })();
-  </script>
 </body>
 </html>
